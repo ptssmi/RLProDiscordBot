@@ -45,7 +45,7 @@ function help_menu(){
     let command1 = "```!sens [team] [player] : retrieves the sensitivity settings of the given player```"
     let command2 = "```!social [team] [player] : retrieves the social media data of the given player```"
     let command3 = "```!teamlist : retrieves all professional teams```"
-    let command4 = "```!teamname [team] : retrieves all players on given team```"
+    let command4 = "```!players [team] : retrieves all players on given team```"
 
     return  `${header}`+`${command0}`+`${command1}`+`${command2}`+`${command3}`+`${command4}`;
 }
@@ -70,17 +70,30 @@ function retrieve_contents(split_message,sheetdata,message_type){
 
 //Gathers all team names and checks against repeats
 function retrieve_teams(sheetdata){
-    var arr = [];
+    var team_arr = [];
     for (let i = 6; i < sheetdata.length; i++) {
         if(sheetdata[i][0] != undefined){
             if(sheetdata[i][0] != "Other"){
                 if(sheetdata[i-1][0] != sheetdata[i][0]){
-                    arr.push(sheetdata[i][0].trim());
+                    team_arr.push(sheetdata[i][0].trim());
                 }
             }
         }
     }
-    return arr;
+    return team_arr;
+}
+
+//Gathers all players on the inputted team
+function retrieve_players(split_message,sheetdata){
+    var player_arr = [];
+    for (let i = 6; i < sheetdata.length; i++) {
+        if(sheetdata[i][0] != undefined){
+            if(sheetdata[i][0].toLowerCase()==split_message[1]){
+                player_arr.push(sheetdata[i][1].trim());
+            }
+        }
+    }
+    return player_arr;
 }
 
 //Identifies commands
@@ -98,10 +111,11 @@ function check_message(message){
         return retrieve_contents(split_message,sheetdata,message_type);
       case "!teamlist":
         return retrieve_teams(sheetdata);
+      case "!players":
+        return retrieve_players(split_message,sheetdata);
       case "!help":
         return help_menu();
     }
-
 }
 
 client0.on("message", async message => {
