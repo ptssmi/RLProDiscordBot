@@ -1,5 +1,6 @@
 const Discord = require("discord.js");
 const { google } = require("googleapis");
+const { stringify } = require("querystring");
 require("dotenv").config();
 
 const client0 = new Discord.Client();
@@ -25,18 +26,24 @@ auth,
 spreadsheetId,
 });
 
-var sheetdata;
+async function update_data(){
+    return new Promise((resolve, reject) => {
+            googleSheets.spreadsheets.values.get({
+            auth,
+            spreadsheetId,
+            range: "Sheet1!A:F",
+        }, (err, res) => {
+            if (err) {
+                return reject(err);
+            }
 
-// Read rows from spreadsheet
-googleSheets.spreadsheets.values.get({
-auth,
-spreadsheetId,
-range: "Sheet1!A:F",
-}).then(async getRows=>{
-    //Gets the very first row and column of the spreadsheet
-    sheetdata = getRows.data.values;
-    
-});
+            var hold = res.data.values;
+            globalThis.rows = hold;
+
+            resolve(hold);
+        });
+    })
+}
 
 //Sends out the formatted help menu
 function help_menu(){
@@ -51,7 +58,8 @@ function help_menu(){
 }
 
 //Checks to ensure data matches command then sends out to Discord
-function retrieve_contents(split_message,sheetdata,message_type){
+async function retrieve_contents(split_message,message_type){
+    var sheetdata = await update_data();
     for (let i = 0; i < sheetdata.length; i++) {
         if(sheetdata[i][1] != undefined){
             if((split_message[1] == sheetdata[i][0].toLowerCase()) && (split_message[2]== sheetdata[i][1].toLowerCase())){
@@ -69,7 +77,8 @@ function retrieve_contents(split_message,sheetdata,message_type){
 }
 
 //Gathers all team names and checks against repeats
-function retrieve_teams(sheetdata){
+async function retrieve_teams(){
+    var sheetdata = await update_data();
     var team_arr = [];
     for (let i = 6; i < sheetdata.length; i++) {
         if(sheetdata[i][0] != undefined){
@@ -84,7 +93,8 @@ function retrieve_teams(sheetdata){
 }
 
 //Gathers all players on the inputted team
-function retrieve_players(split_message,sheetdata){
+async function retrieve_players(split_message){
+    var sheetdata = await update_data();
     var player_arr = [];
     for (let i = 6; i < sheetdata.length; i++) {
         if(sheetdata[i][0] != undefined){
@@ -102,17 +112,17 @@ function check_message(message){
     switch (split_message[0]) {
       case "!cam":
         var message_type = 0
-        return retrieve_contents(split_message,sheetdata,message_type);
+        return retrieve_contents(split_message,message_type);
       case "!sens":
         var message_type = 1
-        return retrieve_contents(split_message,sheetdata,message_type);
+        return retrieve_contents(split_message,message_type);
       case "!social":
         var message_type = 2
-        return retrieve_contents(split_message,sheetdata,message_type);
+        return retrieve_contents(split_message,message_type);
       case "!teamlist":
-        return retrieve_teams(sheetdata);
+        return retrieve_teams();
       case "!players":
-        return retrieve_players(split_message,sheetdata);
+        return retrieve_players(split_message);
       case "!help":
         return help_menu();
     }
@@ -120,7 +130,7 @@ function check_message(message){
 
 client0.on("message", async message => {
     if (message.author.bot) return; //later refresh name of tagged users
-    let response = check_message(message.content.toLowerCase());
+    let response = await check_message(message.content.toLowerCase());
     if (response != null){
         message.channel.send(response)
     }
